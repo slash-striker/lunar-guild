@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "EconomyAccount" ADD COLUMN     "lastInterestDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

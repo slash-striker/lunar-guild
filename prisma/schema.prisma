@@ -1,0 +1,473 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  discordId String   @unique
+  guildId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  economyAccount   EconomyAccount?
+  level            Level?
+  inventoryItems   InventoryItem[]
+  userCollectibles UserCollectible[]
+  cooldowns        Cooldown[]
+  transactions     CurrencyTransaction[]
+  workHistory      WorkHistory[]
+  lotteryEntries   LotteryEntry[]
+  gameSessions     GameSession[]
+  lightsOutStats   LightsOutStats?
+  lightsOutDailyWins LightsOutDailyWin[]
+  highLowStats     HighLowStats?
+  mastermindStats  MastermindStats?
+  fiveDiceStats    FiveDiceStats?
+  ticTacToeStats   TicTacToeStats?
+  ticTacToeGamesAsPlayer1 TicTacToeGameHistory[] @relation("TicTacToePlayer1")
+  ticTacToeGamesAsPlayer2 TicTacToeGameHistory[] @relation("TicTacToePlayer2")
+  caughtFish       caughtFish[]
+  fishingEquipment FishingEquipment?
+
+  @@index([discordId, guildId])
+}
+
+model LightsOutStats {
+  userId        String @id
+  user          User   @relation(fields: [userId], references: [discordId], onDelete: Cascade)
+  gamesPlayed   Int    @default(0)
+  wins          Int    @default(0)
+  totalMoves    Int    @default(0)
+  bestMoves     Int?
+  bestTimeMs    Int?
+  currentStreak Int    @default(0)
+  bestStreak    Int    @default(0)
+  hintsUsed     Int    @default(0)
+  perfectWins   Int    @default(0)
+  dailyWins     Int    @default(0)
+  challengesWon Int    @default(0)
+  battlesWon    Int    @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model LightsOutDailyWin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [discordId], onDelete: Cascade)
+  dateKey   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dateKey])
+  @@index([dateKey])
+}
+
+model HighLowStats {
+  userId             String @id
+  user               User   @relation(fields: [userId], references: [discordId], onDelete: Cascade)
+  roundsPlayed       Int    @default(0)
+  roundsWon          Int    @default(0)
+  gamesPlayed        Int    @default(0)
+  gamesWon           Int    @default(0)
+  totalWinnings      Int    @default(0)
+  highestPayout      Int    @default(0)
+  currentStreak      Int    @default(0)
+  bestStreak         Int    @default(0)
+  luckyRounds        Int    @default(0)
+  mysteryMultipliers Int    @default(0)
+  twoXMultipliers    Int    @default(0)
+  pvpGames           Int    @default(0)
+  pvpWins            Int    @default(0)
+  progressionXP      Int    @default(0)
+  level              Int    @default(1)
+  achievements       String @default("[]")
+  updatedAt          DateTime @updatedAt
+}
+
+model MastermindStats {
+  userId         String @id
+  user           User   @relation(fields: [userId], references: [discordId], onDelete: Cascade)
+  gamesPlayed    Int @default(0)
+  gamesWon      Int @default(0)
+  losses        Int @default(0)
+  quits         Int @default(0)
+  timeouts      Int @default(0)
+  totalAttempts Int @default(0)
+  bestAttempts  Int?
+  fastestTimeMs Int?
+  perfectWins   Int @default(0)
+  dailyWins     Int @default(0)
+  speedrunWins  Int @default(0)
+  currentStreak Int @default(0)
+  bestStreak    Int @default(0)
+  totalRewards  Int @default(0)
+  creditsSpent  Int @default(0)
+  hintsUsed     Int @default(0)
+  achievements  String @default("[]")
+  updatedAt     DateTime @updatedAt
+}
+
+model FiveDiceStats {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [discordId], onDelete: Cascade)
+  gamesPlayed     Int      @default(0)
+  gamesWon        Int      @default(0)
+  totalCredits    Int      @default(0)
+  highestPayout   Int      @default(0)
+  currentStreak   Int      @default(0)
+  bestStreak      Int      @default(0)
+  fiveOfAKind     Int      @default(0)
+  fourOfAKind     Int      @default(0)
+  fullHouses      Int      @default(0)
+  achievements    String   @default("[]")
+  dailyDateKey    String?
+  dailyCompleted  Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
+model TicTacToeStats {
+  userId        String @id
+  user          User   @relation(fields: [userId], references: [discordId], onDelete: Cascade)
+  wins          Int    @default(0)
+  losses        Int    @default(0)
+  draws         Int    @default(0)
+  gamesPlayed   Int    @default(0)
+  totalCredits  Int    @default(0)
+  currentStreak Int    @default(0)
+  bestStreak    Int    @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model TicTacToeGameHistory {
+  id          String   @id @default(cuid())
+  player1Id   String
+  player2Id   String
+  winnerId    String?
+  result      String
+  moves       Int
+  durationMs  Int
+  credits     Int      @default(0)
+  createdAt   DateTime @default(now())
+  player1     User     @relation("TicTacToePlayer1", fields: [player1Id], references: [discordId], onDelete: Cascade)
+  player2     User     @relation("TicTacToePlayer2", fields: [player2Id], references: [discordId], onDelete: Cascade)
+
+  @@index([player1Id, createdAt])
+  @@index([player2Id, createdAt])
+}
+
+model EconomyAccount {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  wallet             Int      @default(0)
+  bank               Int      @default(0)
+  totalCreditsEarned Int      @default(0)
+  totalCreditsSpent  Int      @default(0)
+  workEarnings       Int      @default(0)
+  workShifts         Int      @default(0)
+  highestJob         String   @default("Unemployed")
+  currentJob         String   @default("Unemployed")
+  careerLevel        Int      @default(0)
+  lastInterestDate   DateTime @default(now())
+
+  fishingCount          Int     @default(0)
+  successfulRobberies   Int     @default(0)
+  crimesCommitted       Int     @default(0)
+  begAttempts           Int     @default(0)
+  scratchcardsPurchased Int     @default(0)
+  lotteriesWon          Int     @default(0)
+  lotteryParticipation  Int     @default(0)
+  lotteryAmountSpent    Int     @default(0)
+  blackjackRulesAgreed  Boolean @default(false)
+
+  @@index([wallet])
+  @@index([bank])
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  price       Int
+  category    String
+  isTradeable Boolean  @default(true)
+  maxLimit    Int?
+  createdAt   DateTime @default(now())
+}
+
+model Collectible {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  description      String
+  emoji            String            @default("🏆")
+  rarity           String            @default("common")
+  createdAt        DateTime          @default(now())
+  userCollectibles UserCollectible[]
+}
+
+model UserCollectible {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectibleId String
+  collectible   Collectible @relation(fields: [collectibleId], references: [id])
+  obtainedAt    DateTime    @default(now())
+
+  @@unique([userId, collectibleId])
+  @@index([userId])
+}
+
+model Cooldown {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  command   String
+  expiresAt DateTime
+
+  @@unique([userId, command])
+  @@index([userId, command])
+  @@index([expiresAt])
+}
+
+model CurrencyTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int
+  type         String
+  reason       String
+  source       String
+  balanceAfter Int
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Level {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level             Int      @default(1)
+  xp                Int      @default(0)
+  totalMessageCount Int      @default(0)
+  lastSeenAt        DateTime @default(now())
+  lastXPGainAt      DateTime @default(now())
+
+  @@index([level])
+  @@index([xp])
+}
+
+model ServerConfig {
+  id               String @id @default(cuid())
+  guildId          String @unique
+  economyChannelId String
+  levelUpChannelId String
+  welcomeChannelId String
+  boosterChannelId String
+  leaveChannelId   String
+  botOwnerId       String
+  weeklyEventLastRun DateTime?
+
+  // Economy settings
+  dailyAmount         Int   @default(1000)
+  workCooldown        Int   @default(14400000) // 4 hours in ms
+  workBaseSalary      Int   @default(50)
+  workMaxSalary       Int   @default(1500)
+  bankInterestRate    Float @default(0.05) // 5% interest rate
+  fishingCooldown     Int   @default(3600000)
+  crimeCooldown       Int   @default(3600000)
+  begCooldown         Int   @default(60000)
+  robCooldown         Int   @default(300000)
+  bankRobberyCooldown Int   @default(259200000) // 3 days in ms
+  scratchcardCooldown Int   @default(60000)
+
+  // Robbery settings
+  robMinBalance       Int   @default(3000)
+  robTargetMinBalance Int   @default(2000)
+  robSuccessChance    Float @default(0.4)
+  robStealPercentage  Float @default(0.3)
+
+  // Bank robbery settings
+  bankrobCost            Int   @default(5000)
+  bankrobMinPlayers      Int   @default(4)
+  bankrobTimer           Int   @default(60000) // 1 minute
+  bankrobStealPercentage Float @default(0.25)
+
+  // Blackjack settings
+  blackjackMaxBet Int @default(10000)
+
+  // Game cooldowns
+  gamesCooldown      Int @default(10000)
+  blackjackCooldown  Int @default(0)
+  matchpairsCooldown Int @default(10000)
+  fivediceCooldown   Int @default(10000)
+  lightsoutCooldown  Int @default(10000)
+  mastermindCooldown Int @default(10000)
+  hangmanCooldown    Int @default(10000)
+  highlowCooldown    Int @default(10000)
+  rpsCooldown        Int @default(10000)
+  tictactoeCooldown  Int @default(10000)
+
+  // Double coin day settings
+  doubleCoinDayEnabled Boolean @default(true)
+  doubleCoinDayDays    Int     @default(3) // First N days of each month
+
+  // Lottery settings
+  lotteryCost             Int   @default(2500)
+  lotteryPayoutMultiplier Float @default(2.0)
+
+  // XP settings
+  xpPerMessage      Int   @default(10)
+  xpCooldown        Int   @default(60000)
+  xpBaseRequirement Int   @default(100)
+  xpMultiplier      Float @default(1.5)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WeeklyEvent {
+  dateKey    String   @id
+  guildId    String
+  openedAt   DateTime @default(now())
+  expiresAt  DateTime @default(now())
+  prizeAmount Int      @default(100000)
+  drawnAt    DateTime?
+  winnerId   String?
+  entries    WeeklyEventEntry[]
+
+  @@index([guildId, openedAt])
+}
+
+model WeeklyEventEntry {
+  id         String      @id @default(cuid())
+  eventDate  String
+  userId     String
+  joinedAt   DateTime    @default(now())
+  event      WeeklyEvent @relation(fields: [eventDate], references: [dateKey], onDelete: Cascade)
+
+  @@unique([eventDate, userId])
+  @@index([userId])
+}
+
+model Lottery {
+  id           String    @id @default(cuid())
+  guildId      String
+  status       String    @default("open") // open, drawing, completed
+  totalPool    Int       @default(0)
+  winnerId     String?
+  winnerPayout Int?
+  drawnAt      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  entries LotteryEntry[]
+
+  @@index([guildId])
+  @@index([status])
+}
+
+model LotteryEntry {
+  id        String   @id @default(cuid())
+  lotteryId String
+  lottery   Lottery  @relation(fields: [lotteryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  createdAt DateTime @default(now())
+
+  @@unique([lotteryId, userId])
+  @@index([lotteryId])
+}
+
+model GameSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameType  String
+  state     String   @default("active") // active, completed, expired
+  payload   String // JSON string for game-specific data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([gameType])
+  @@index([state])
+}
+
+model WorkHistory {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobName  String
+  salary   Int
+  workedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([workedAt])
+}
+
+model Fish {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  emoji       String  @default("🐟")
+  rarity      String // common, uncommon, rare, epic, legendary, mythic
+  value       Int // sell value in credits
+  catchRate   Float // probability of catching (0-1)
+  minWeight   Float   @default(1.0)
+  maxWeight   Float   @default(10.0)
+  description String?
+
+  caughtFish caughtFish[]
+
+  @@index([rarity])
+}
+
+model caughtFish {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fishId   String
+  fish     Fish     @relation(fields: [fishId], references: [id])
+  weight   Float
+  value    Int      // actual value based on weight
+  caughtAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([fishId])
+  @@index([caughtAt])
+  @@map("CaughtFish")
+}
+
+model FishingEquipment {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rod       String   @default("basic")
+  hook      String   @default("basic")
+  bait      String   @default("worm")
+  boat      String   @default("none")
+  water     String   @default("shore")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
